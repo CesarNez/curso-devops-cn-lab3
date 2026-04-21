@@ -1,12 +1,11 @@
 pipeline{
     agent any
-    
     stages{
         stage("Integración continua"){
             agent{
-                docker
-                {
+                docker{
                     image "node:24"
+                    reuseNode true
                 }
             }
             stages{
@@ -32,11 +31,6 @@ pipeline{
                 }
             }
         }
-        stage("Pruebas de QA"){
-            
-        }
-    }
-    stages{
         stage("5. Generar imagen docker"){
             steps{
                 sh "docker build -curso-devops ."
@@ -52,6 +46,7 @@ pipeline{
                 }
                 
             }
-        }        
+        }      
     }
+
 }
