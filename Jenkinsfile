@@ -39,7 +39,7 @@ pipeline{
                         sh "docker tag curso-devops-lab3 cesarnez/curso-devops-cn-lab3:latest"
                         sh "docker push cesarnez/curso-devops-cn-lab3:latest"
                     }
-                    docker.withRegistry("ghcr.io","pass_gh"){
+                    docker.withRegistry("https://ghcr.io","pass_gh"){
                         sh "docker tag curso-devops-lab3 cesarnez/curso-devops-cn-lab3:latest"
                         sh "docker push ghcr.io/cesarnez/curso-devops-cn-lab3:latest"
                     }
