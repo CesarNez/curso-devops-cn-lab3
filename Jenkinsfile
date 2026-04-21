@@ -42,12 +42,12 @@ pipeline{
                 sh "docker build -curso-devops ."
                 script{
                     docker.withRegistry("index.docker.io/v1/","cesarnez"){
-                        sh "docker tag curso-devops-lab3 cesarnez/curso-devops-lab3:latest"
-                        sh "docker push cesarnez/curso-devops-lab3:latest"
+                        sh "docker tag curso-devops-lab3 cesarnez/curso-devops-cn-lab3:latest"
+                        sh "docker push cesarnez/curso-devops-cn-lab3:latest"
                     }
                     docker.withRegistry("ghcr.io"){
-                        sh "docker tag curso-devops-lab3 cesarnez/curso-devops-lab3:latest"
-                        sh "docker push cesarnez/curso-devops-lab3:latest"
+                        sh "docker tag curso-devops-lab3 cesarnez/curso-devops-cn-lab3:latest"
+                        sh "docker push cesarnez/curso-devops-cn-lab3:latest"
                     }
                 }
                 
