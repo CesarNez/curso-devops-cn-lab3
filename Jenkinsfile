@@ -1,7 +1,15 @@
 pipeline{
     agent any
+    environment {
+        IMAGE_NAME = "curso-devops-lab3"
+        DH_REPO    = "cesarnez/curso-devops-cn-lab3"
+        GHCR_REPO  = "ghcr.io/cesarnez/curso-devops-cn-lab3"
+        K8S_NAMESPACE  = "curso-lab3"
+        K8S_DEPLOYMENT = "curso-lab3-deployment"
+        K8S_CONTAINER  = "contenedor-curso-lab3"
+    }
     stages{
-        stage("Integración continua"){
+        stage("1. Integración continua"){
             agent{
                 docker{
                     image "node:24"
@@ -9,29 +17,57 @@ pipeline{
                 }
             }
             stages{
-                stage("1. Instalar dependencias"){
+                stage("Instalar dependencias"){
                     steps{                
                         sh "npm install"
                     }
                 }
-                stage("2. Lint (debug)"){
+                stage("Lint (debug)"){
                     steps{
                         sh "npm run lint"
                     }
                 }
-                stage("3. Pruebas"){
+                stage("Pruebas locales"){
                     steps{                
-                        sh "npm run test"
+                        sh "npm run test:cov"
                     }
                 }
-                stage("4. Construir aplicación"){
+                stage("Construir aplicación"){
                     steps{
                         sh "npm run build"
                     }
                 }
             }
         }
-        stage("Generar imagen docker"){
+        stage("2. QA"){
+            agent {
+                docker {
+                    image 'sonarsource/sonar-scanner-cli'
+                    args '--network=devops-infra_default'
+                    reuseNode true
+                }
+            }
+            stages{
+                stage("Validacion de codigo"){
+                    steps{
+                        withSonarQubeEnv('sonarqube'){
+                            sh 'sonar-scanner'
+                        }
+                    }
+                }
+                stage('Validacion quality gate'){
+                    steps{
+                        script{
+                            def qualityGate = waitForQualityGate()
+                            if(qualityGate.status != 'OK'){
+                                error "La puerta de calidad ha fallado: ${qualityGate.status}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage("3. Generar imagen docker"){
             steps{
                 sh "docker build -t curso-devops-lab3 ."
                 script{
