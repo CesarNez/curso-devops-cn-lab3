@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: contenedor-curso-lab3
-        image: cesarnez/curso-devops-lab3
+        image: cesarnez/curso-devops-cn-lab3
         imagePullPolicy: Always
         env:
         - name: NODE_ENV
