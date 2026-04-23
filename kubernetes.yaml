@@ -75,3 +75,22 @@ spec:
   - protocol: TCP
     port: 80
     targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: curso-lab3-ingress
+  namespace: cnunez
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: lab3.devops.cl
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: curso-lab3-service
+            port:
+              number: 80
