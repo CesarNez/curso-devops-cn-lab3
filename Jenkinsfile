@@ -1,10 +1,22 @@
+def tagAndPush(String localImage, String repo, String registry, String credential) {
+
+    docker.withRegistry(registry, credential) {
+        sh "docker tag ${localImage} ${repo}:latest"
+        sh "docker tag ${localImage} ${repo}:${env.BUILD_NUMBER}"
+        sh "docker tag ${localImage} ${repo}:${env.APP_SEMANTIC_VERSION}"
+        sh "docker push ${repo}:latest"
+        sh "docker push ${repo}:${env.BUILD_NUMBER}"
+        sh "docker push ${repo}:${env.APP_SEMANTIC_VERSION}"
+    }
+}
+
 pipeline{
     agent any
     environment {
-        IMAGE_NAME = "curso-devops-lab3"
+        IMAGE_NAME = "curso-devops-cn-lab3"
         DH_REPO    = "cesarnez/curso-devops-cn-lab3"
         GHCR_REPO  = "ghcr.io/cesarnez/curso-devops-cn-lab3"
-        K8S_NAMESPACE  = "curso-lab3"
+        K8S_NAMESPACE  = "cnunez"
         K8S_DEPLOYMENT = "curso-lab3-deployment"
         K8S_CONTAINER  = "contenedor-curso-lab3"
     }
@@ -17,6 +29,17 @@ pipeline{
                 }
             }
             stages{
+                stage("Versionamiento") {
+                    steps {
+                        script {
+                            env.APP_SEMANTIC_VERSION = sh(
+                                script: 'npm pkg get version | tr -d \'"\'',
+                                returnStdout: true
+                            ).trim()
+                            echo "Version semantica detectada: ${env.APP_SEMANTIC_VERSION}"
+                        }
+                    }
+                }
                 stage("Instalar dependencias"){
                     steps{                
                         sh "npm install"
@@ -69,20 +92,36 @@ pipeline{
         }
         stage("3. Generar imagen docker"){
             steps{
-                sh "docker build -t curso-devops-lab3 ."
-                script{
-                    docker.withRegistry("https://index.docker.io/v1/","pass_docker"){
-                        sh "docker tag curso-devops-lab3 cesarnez/curso-devops-lab3:latest"
-                        sh "docker push cesarnez/curso-devops-lab3:latest"
+                sh "docker build -t curso-devops-cn-lab3 ."
+                script {
+                    if (!env.APP_SEMANTIC_VERSION?.trim()) {
+                        error("APP_SEMANTIC_VERSION no definida en el stage anterior")
                     }
-                    docker.withRegistry("https://ghcr.io","pass_gh"){
-                        sh "docker tag curso-devops-lab3 cesarnez/curso-devops-lab3:latest"
-                        sh "docker push ghcr.io/cesarnez/curso-devops-lab3:latest"
+                    tagAndPush(env.IMAGE_NAME, env.DH_REPO, "https://index.docker.io/v1/", "pass_docker")
+                    tagAndPush(env.IMAGE_NAME, env.GHCR_REPO, "https://ghcr.io", "pass_gh")
+                }
+            }
+        }
+        stage("4. Despliegue continuo en ambiente"){
+            agent {
+                docker {
+                    image 'alpine/k8s:1.34.6'
+                    reuseNode true
+                }
+            }
+            steps{
+                script {
+                    if (!env.APP_SEMANTIC_VERSION?.trim()) {
+                        error("APP_SEMANTIC_VERSION no definida para el despliegue")
                     }
                 }
-                
+                withKubeConfig([credentialsId: 'pass-k8']) {
+                    sh """
+                        kubectl -n ${env.K8S_NAMESPACE} set image deployment/${env.K8S_DEPLOYMENT} ${env.K8S_CONTAINER}=${env.DH_REPO}:${env.APP_SEMANTIC_VERSION}
+                        kubectl -n ${env.K8S_NAMESPACE} rollout status deployment/${env.K8S_DEPLOYMENT}
+                    """
+                }
             }
-        }      
+        }
     }
-
 }

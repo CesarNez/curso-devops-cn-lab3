@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnunez
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: curso-lab3-config
+  namespace: cnunez
+data:
+  USER_KEY: "cmd"
+  ENDPOINT: "http://api.google.com/v1"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: curso-lab3-secret
+  namespace: cnunez
+type: Opaque
+stringData:
+  BD_PASSWORD: "asddsadsaasds"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: curso-lab3-deployment
+  namespace: cnunez
+  labels:
+    app: curso-lab3-stack
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: curso-lab3-stack
+  template:
+    metadata:
+      labels:
+        app: curso-lab3-stack
+    spec:
+      containers:
+      - name: contenedor-curso-lab3
+        image: cesarnez/curso-devops-lab3
+        imagePullPolicy: Always
+        env:
+        - name: NODE_ENV
+          value: development
+        - name: PORT
+          value: "3000"
+        - name: USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: curso-lab3-config
+              key: USERNAME
+              optional: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: curso-lab3-service
+  namespace: cnunez
+  labels:
+    app: curso-lab3-stack
+spec:
+  selector:
+     app: curso-lab3-stack
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
